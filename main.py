@@ -1,39 +1,62 @@
-import os
 from dotenv import load_dotenv
-from src.core.engine import PsychAnalyzer
+from PsychAnalyzer.gemini import start_char
 from src.db import DB_connection
+from src.services.user import User
 
 load_dotenv()
 
-def main():
-    db = DB_connection()
+db = DB_connection()
 
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("Помилка: Токен не знайдено!")
+def menu():
+    while True:
+        print('Увійти [l], Створити користувача [c], вийти [e]')
+        choice = input().strip().lower()
+
+        match choice:
+            case 'l':
+                user = User.login(db)
+                if user is not None:
+                    return user
+                print('Такого користувача не має. Спробуйте ще раз.\n')
+
+            case 'c':
+                user = User.create(db)
+                if user is not None:
+                    return user
+                print('Username має бути унікальним. Спробуйте ще раз.\n')
+
+            case 'e':
+                return None
+
+            case _:
+                print('Невідома команда. Будь ласка, оберіть l, c або e.\n')
+
+def choose_llm(user):
+    while True:
+        print('Виберіть модель для спілкування: Gemini [g]')
+        choice = input().strip().lower()
+
+        match choice:
+            case 'g':
+                return start_char()
+
+            case _:
+                print('Невідома команда.\n')
+
+    return None
+
+def main():
+    user = menu()
+    if user is None:
         return
 
-    analyzer = PsychAnalyzer(api_key)
-    print("Чат розпочато. Напишіть 'exit' для аналізу.\n")
+    profile, model_name = choose_llm(user)
+    if profile is None:
+        return
 
-    while True:
-        user_input = input("Ви: ")
-        if user_input.lower() == 'exit':
-            break
-
-        # Отримуємо відповідь (ШІ буде «думати» завдяки Thinking High)
-        print("\n(Психолог аналізує...)")
-        try:
-            response = analyzer.get_response(user_input)
-            print(f"Психолог: {response}\n")
-        except Exception as e:
-            print(f"Сталася помилка: {e}")
-
-    print("\n--- ГЕНЕРУЄМО ПОРТРЕТ ---")
-    profile = analyzer.generate_final_profile()
-    print(profile.model_dump_json(indent=2))
-
-    db.close()
+    db.add_res_f_llm(profile, model_name, user.id)
 
 if __name__ == "__main__":
     main()
+
+db.close()
