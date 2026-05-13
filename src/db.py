@@ -69,7 +69,8 @@ class DB_connection:
         if self.cursor.fetchone()[0] == 0:
             self.cursor.execute("""
                 INSERT INTO models (name)
-                VALUES ('gemini-3.1-flash-lite');
+                VALUES ('gemini-3.1-flash-lite'),
+                        ('gpt-4o-mini');
             """)
 
             self.connect.commit()
@@ -129,13 +130,34 @@ class DB_connection:
 
         return self.cursor.fetchone()[0]
 
-    def add_conversation(self, history, char_res_id):
-        for answer in history:
-            msg = "".join([p.text for p in answer.parts if p.text is not None])
+    def add_conversation(self, history, res_id):
+        """Зберігає історію повідомлень, незалежно від формату (Gemini або OpenAI)"""
+        for entry in history:
+            # 1. Визначаємо роль (user/model/assistant/system)
+            if hasattr(entry, 'role'):
+                role = entry.role # Формат Gemini
+            else:
+                role = entry.get('role') # Формат OpenAI
 
-            self.cursor.execute("""
-                INSERT INTO conversations (chats_res_id, answer, role)
-                    VALUES (%s, %s, %s);            
-            """, (char_res_id, msg, answer.role))
+            # 2. Визначаємо контент (текст повідомлення)
+            if hasattr(entry, 'parts'):
+                # Формат Gemini: збираємо текст із частин
+                content = "".join([p.text for p in entry.parts if p.text])
+            else:
+                # Формат OpenAI/GitHub: беремо значення за ключем 'content'
+                content = entry.get('content', '')
+
+            # Якщо повідомлення пусте (наприклад, технічний JSON), ігноруємо або чистимо
+            if not content:
+                continue
+
+            # 3. Записуємо в базу
+            try:
+                self.cursor.execute(
+                    "INSERT INTO conversations (chats_res_id, answer, role) VALUES (%s, %s, %s);",
+                    (res_id, role, content)
+                )
+            except Exception as e:
+                print(f"Помилка запису повідомлення в БД: {e}")
 
         self.connect.commit()

@@ -1,13 +1,11 @@
-import os
 import json
 import time
-
 from google import genai
 from google.genai import types
-from .models import PsychProfile, ChatResponse
+from core.models import PsychProfile, ChatResponse
+from .AbsEngine import BasePsychAnalyzer
 
-
-class PsychAnalyzer:
+class GeminiPsychAnalyzer(BasePsychAnalyzer):
     def __init__(self, api_key: str):
         self.client = genai.Client(api_key=api_key)
         # Використовуємо модель, яка була у вашому списку
