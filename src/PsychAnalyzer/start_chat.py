@@ -31,7 +31,7 @@ def start_char(model):
         if user_input.lower() == 'exit':
             break
 
-        print(f"\n(Психолог {model} аналізує...)")
+        print(f"\n(Психолог {model_name} аналізує...)")
         try:
             response = analyzer.get_response(user_input)
             print(f"Психолог: {response}\n")
