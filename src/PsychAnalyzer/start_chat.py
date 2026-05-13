@@ -2,6 +2,24 @@ import os
 
 from core import engines
 
+def pretty_out(response, width=50):
+    words = response.split(' ')  # Розбиваємо на слова
+    lines = []
+    current_line = []
+    current_length = 0
+
+    for word in words:
+        if current_length + len(word) + 1 > width:
+            lines.append(' '.join(current_line))
+            current_line = [word]
+            current_length = len(word)
+        else:
+            current_line.append(word)
+            current_length += len(word) + 1
+
+    lines.append(' '.join(current_line))
+    return '\n'.join(lines)
+
 def start_char(model):
     analyzer = None
     model_name = ''
@@ -34,7 +52,7 @@ def start_char(model):
         print(f"\n(Психолог {model_name} аналізує...)")
         try:
             response = analyzer.get_response(user_input)
-            print(f"Психолог: {response}\n")
+            print(f"Психолог: {pretty_out(response)}\n")
         except Exception as e:
             print(f"Сталася помилка: {e}")
 
