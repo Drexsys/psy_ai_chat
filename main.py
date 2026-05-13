@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from PsychAnalyzer.gemini import start_char
+from PsychAnalyzer.start_chat import start_char
 from src.db import DB_connection
 from src.services.user import User
 
@@ -33,12 +33,14 @@ def menu():
 
 def choose_llm(user):
     while True:
-        print('Виберіть модель для спілкування: Gemini [g]')
+        print('Виберіть модель для спілкування: Gemini [g] Chat-GPT [o]')
         choice = input().strip().lower()
 
         match choice:
             case 'g':
-                return start_char()
+                return start_char(choice)
+            case 'o':
+                return start_char(choice)
 
             case _:
                 print('Невідома команда.\n')
