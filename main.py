@@ -50,11 +50,12 @@ def main():
     if user is None:
         return
 
-    profile, model_name = choose_llm(user)
+    profile, model_name, history = choose_llm(user)
     if profile is None:
         return
 
-    db.add_res_f_llm(profile, model_name, user.id)
+    res_id = db.add_res_f_llm(profile, model_name, user.id)
+    db.add_conversation(history, res_id)
 
 if __name__ == "__main__":
     main()

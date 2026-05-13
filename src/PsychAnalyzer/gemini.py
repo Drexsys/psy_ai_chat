@@ -25,6 +25,7 @@ def start_char():
 
     print("\n--- ГЕНЕРУЄМО ПОРТРЕТ ---")
     profile = analyzer.generate_final_profile()
-    print(profile.model_dump_json(indent=2))
+    if profile is not None:
+        print(profile.model_dump_json(indent=2))
 
-    return profile, 'gemini-3.1-flash-lite'
+    return profile, 'gemini-3.1-flash-lite', analyzer.history

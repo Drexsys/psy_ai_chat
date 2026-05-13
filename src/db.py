@@ -51,7 +51,7 @@ class DB_connection:
                 id SERIAL PRIMARY KEY,
                 chats_res_id INT REFERENCES chats_res ON DELETE CASCADE,
                 answer TEXT NOT NULL,
-                is_llm BOOLEAN NOT NULL
+                role TEXT NOT NULL
             );
         """)
 
@@ -122,6 +122,20 @@ class DB_connection:
             INSERT INTO chats_res (
                 user_id, model_id, res_id, summary)
                 Values (%s, %s, %s, %s)
+            RETURNING id;
         """, (user_id, model_id, res_id, res.summary))
+
+        self.connect.commit()
+
+        return self.cursor.fetchone()[0]
+
+    def add_conversation(self, history, char_res_id):
+        for answer in history:
+            msg = "".join([p.text for p in answer.parts if p.text is not None])
+
+            self.cursor.execute("""
+                INSERT INTO conversations (chats_res_id, answer, role)
+                    VALUES (%s, %s, %s);            
+            """, (char_res_id, msg, answer.role))
 
         self.connect.commit()

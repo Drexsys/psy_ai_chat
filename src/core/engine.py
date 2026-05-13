@@ -1,5 +1,7 @@
 import os
 import json
+import time
+
 from google import genai
 from google.genai import types
 from .models import PsychProfile, ChatResponse
@@ -49,14 +51,24 @@ class PsychAnalyzer:
         return ai_text
 
     # ЦЕЙ МЕТОД МАЄ БУТИ ВСЕРЕДИНІ КЛАСУ
-    def generate_final_profile(self) -> PsychProfile:
-        """Аналізує історію чату та повертає структурований JSON портрет"""
-        prompt = "На основі нашого діалогу сформуй повний психологічний портрет за схемою JSON."
+    def generate_final_profile(self):
+        attems = 0
+        while attems < 10:
+            try:
+                """Аналізує історію чату та повертає структурований JSON портрет"""
+                prompt = "На основі нашого діалогу сформуй повний психологічний портрет за схемою JSON."
 
-        response = self.client.models.generate_content(
-            model=self.model_id,
-            contents=self.history + [types.Content(role="user", parts=[types.Part.from_text(text=prompt)])],
-            config=self._get_config(PsychProfile)
-        )
+                response = self.client.models.generate_content(
+                    model=self.model_id,
+                    contents=self.history + [types.Content(role="user", parts=[types.Part.from_text(text=prompt)])],
+                    config=self._get_config(PsychProfile)
+                )
 
-        return PsychProfile(**json.loads(response.text))
+                return PsychProfile(**json.loads(response.text))
+            except genai.errors.ServerError:
+                print('Це може зайняти трохи часу')
+                attems += 1
+                time.sleep(1)
+
+        print('Сталася помилка. Портрет сформувати не вдалося')
+        return None
