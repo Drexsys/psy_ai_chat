@@ -32,11 +32,9 @@ def plot_radar(df_llm, truth, traits, username):
     ax.set_ylim(0, MAX_SCORE)
 
     plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-    # Додано ім'я користувача до назви
     plt.title(f"Усереднений профіль OCEAN: {username} (Бали)", size=14, pad=20)
     plt.tight_layout()
     plt.show()
-
 
 def plot_stability(df_llm, username):
     if 'mean_error' not in df_llm.columns:
@@ -65,7 +63,6 @@ def plot_stability(df_llm, username):
     plt.tight_layout()
     plt.show()
 
-
 def print_analytics(df_llm, label="", is_global=False):
     print(f"\n--- АНАЛІТИКА ТОЧНОСТІ МОДЕЛЕЙ (%) {label} ---")
 
@@ -74,12 +71,8 @@ def print_analytics(df_llm, label="", is_global=False):
         return
 
     if is_global:
-        # ПРАВИЛЬНИЙ РОЗРАХУНОК ДЛЯ ЗАГАЛЬНОЇ ТАБЛИЦІ:
-        # 1. Рахуємо метрики для кожного користувача окремо
         user_metrics = df_llm.groupby(['model', 'username'])['mean_error'].agg(['mean', 'std']).reset_index()
 
-        # 2. Беремо середнє від цих метрик по моделях
-        # Це дасть "Середню похибку серед користувачів" та "Середню стабільність моделі"
         summary = user_metrics.groupby('model').agg({
             'mean': 'mean',
             'std': 'mean'
@@ -88,7 +81,6 @@ def print_analytics(df_llm, label="", is_global=False):
         summary.rename(columns={'mean': 'Сер. похибка (Mean of Means, %)',
                                 'std': 'Сер. стабільність (Mean of Std, %)'}, inplace=True)
     else:
-        # Для окремого користувача залишаємо як було
         summary = df_llm.groupby('model')['mean_error'].agg(['mean', 'std']).reset_index()
         summary.rename(columns={'mean': 'Сер. похибка (%)', 'std': 'Стабільність (std %)'}, inplace=True)
 
@@ -112,7 +104,6 @@ def parse_data(user_id):
             'neuroticism': res[5]
         })
     return temp
-
 
 def get_true_data(user_id):
     db.cursor.execute("SELECT res_id FROM true_res WHERE user_id = %s;", (user_id,))
