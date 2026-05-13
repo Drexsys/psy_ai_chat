@@ -115,6 +115,8 @@ def main():
     db.cursor.execute("SELECT id, username FROM users;")
     users = db.cursor.fetchall()
 
+    all_users_data = []
+
     for user in users:
         print(f"\nОбробка даних для користувача: {user[1]} (ID: {user[0]})")
 
@@ -138,9 +140,22 @@ def main():
         error_cols = [f'error_{t}' for t in traits]
         llm_data['mean_error'] = llm_data[error_cols].mean(axis=1)
 
+        all_users_data.append(llm_data)
+
         plot_radar(llm_data, ground_truth, traits)
         plot_stability(llm_data)
         print_analytics(llm_data)
+
+    if all_users_data:
+        final_df = pd.concat(all_users_data, ignore_index=True)
+
+        print("\n" + "=" * 40)
+        print("ЗАГАЛЬНІ РЕЗУЛЬТАТИ ПО ВСІМ КОРИСТУВАЧАМ")
+        print("=" * 40)
+
+        print_analytics(final_df)
+    else:
+        print("\nНе вдалося зібрати достатньо даних для загальної аналітики.")
 
 if __name__ == "__main__":
     try:
