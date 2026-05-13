@@ -65,14 +65,34 @@ def plot_stability(df_llm, username):
     plt.tight_layout()
     plt.show()
 
-def print_analytics(df_llm, label=""):
+
+def print_analytics(df_llm, label="", is_global=False):
     print(f"\n--- АНАЛІТИКА ТОЧНОСТІ МОДЕЛЕЙ (%) {label} ---")
-    if 'mean_error' in df_llm.columns:
+
+    if 'mean_error' not in df_llm.columns:
+        print("Немає даних для аналітики.")
+        return
+
+    if is_global:
+        # ПРАВИЛЬНИЙ РОЗРАХУНОК ДЛЯ ЗАГАЛЬНОЇ ТАБЛИЦІ:
+        # 1. Рахуємо метрики для кожного користувача окремо
+        user_metrics = df_llm.groupby(['model', 'username'])['mean_error'].agg(['mean', 'std']).reset_index()
+
+        # 2. Беремо середнє від цих метрик по моделях
+        # Це дасть "Середню похибку серед користувачів" та "Середню стабільність моделі"
+        summary = user_metrics.groupby('model').agg({
+            'mean': 'mean',
+            'std': 'mean'
+        }).reset_index()
+
+        summary.rename(columns={'mean': 'Сер. похибка (Mean of Means, %)',
+                                'std': 'Сер. стабільність (Mean of Std, %)'}, inplace=True)
+    else:
+        # Для окремого користувача залишаємо як було
         summary = df_llm.groupby('model')['mean_error'].agg(['mean', 'std']).reset_index()
         summary.rename(columns={'mean': 'Сер. похибка (%)', 'std': 'Стабільність (std %)'}, inplace=True)
-        print(summary.to_markdown(index=False))
-    else:
-        print("Немає даних для аналітики.")
+
+    print(summary.to_markdown(index=False))
 
 def parse_data(user_id):
     db.cursor.execute("SELECT * FROM chats_res WHERE user_id = %s;", (user_id,))
@@ -116,18 +136,16 @@ def main():
 
     for user in users:
         u_id, u_name = user[0], user[1]
-        print(f"\nОбробка даних для користувача: {u_name} (ID: {u_id})")
-
         ground_truth = get_true_data(u_id)
         llm_data_raw = parse_data(u_id)
 
         if not ground_truth or not llm_data_raw:
-            print(f"Дані для {u_name} відсутні.")
             continue
 
         llm_data = pd.DataFrame(llm_data_raw)
-        traits = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism']
+        llm_data['username'] = u_name
 
+        traits = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism']
         for trait in traits:
             llm_data[f'error_{trait}'] = (abs(llm_data[trait] - ground_truth[trait]) / MAX_SCORE) * 100
 
@@ -135,16 +153,17 @@ def main():
         llm_data['mean_error'] = llm_data[error_cols].mean(axis=1)
         all_users_data.append(llm_data)
 
+        print_analytics(llm_data, label=f"КОРИСТУВАЧ: {u_name}", is_global=False)
+
         plot_radar(llm_data, ground_truth, traits, u_name)
         plot_stability(llm_data, u_name)
-        print_analytics(llm_data, label=f"КОРИСТУВАЧ: {u_name}")
 
     if all_users_data:
         final_df = pd.concat(all_users_data, ignore_index=True)
-        print("\n" + "=" * 40)
-        print("ЗАГАЛЬНІ РЕЗУЛЬТАТИ ПО ВСІМ КОРИСТУВАЧАМ (%)")
-        print("=" * 40)
-        print_analytics(final_df, label="ЗАГАЛОМ")
+        print("\n" + "=" * 60)
+        print("ПРАВИЛЬНІ ЗАГАЛЬНІ РЕЗУЛЬТАТИ (АГРЕГОВАНІ ПО КОРИСТУВАЧАХ)")
+        print("=" * 60)
+        print_analytics(final_df, label="ЗАГАЛОМ", is_global=True)
 
 if __name__ == "__main__":
     try:
